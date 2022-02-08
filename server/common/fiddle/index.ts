@@ -45,7 +45,7 @@ export default class Fiddle {
   }
 
   private getScriptPath(): string {
-    return path.join(this.getFiddleRootPath(), 'script.pwn');
+    return path.join(this.getFiddleRootPath(), 'script.js');
   }
 
   private getAMXPath(): string {
@@ -53,7 +53,7 @@ export default class Fiddle {
   }
 
   private getPawnPackagePath(): string {
-    return path.join(this.getFiddleRootPath(), 'pawn.json');
+    return path.join(this.getFiddleRootPath(), 'script.json');
   }
 
   async setData(fiddleID: string, title: string = undefined, dependencies: IDependency[] = undefined, content: string = undefined): Promise<boolean> {
@@ -128,7 +128,7 @@ export default class Fiddle {
       await fs.writeFile(metaDataPath, JSON.stringify(metaData));
 
       const pawnPackage: IPawnPackage = {
-        entry: 'script.pwn',
+        entry: 'script.js',
         output: 'script.amx',
         dependencies: this.dependencies.map(dependency => `${dependency.user}/${dependency.repo}`)
       }
@@ -138,7 +138,6 @@ export default class Fiddle {
     } catch (ex) {
       return false;
     }
-
     return true;
   }
 
@@ -159,6 +158,7 @@ export default class Fiddle {
 
   async build(): Promise<IBuildResponse> {
     try {
+      // reaplce with node "build", imports etc - use rollup? probably yeah
       const process = await execa('sampctl', ['package', 'build'], {
         cwd: this.getFiddleRootPath()
       });
@@ -173,7 +173,7 @@ export default class Fiddle {
       l.debug('[BUILD ERROR]', ex); // Can be an error caused by the user (errors in script)
 
       const stdout: string = ex.stdout.replace('\\n', os.EOL);
-      const regex: RegExp = /\/.*\/script\.pwn\:(\d+)\s\((\w+)\)\s(.*)/g;
+      const regex: RegExp = /\/.*\/script\.js\:(\d+)\s\((\w+)\)\s(.*)/g;
       const matches: RegExpMatchArray = stdout.match(regex);
 
       let errors: string[] = [];

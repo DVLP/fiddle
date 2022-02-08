@@ -103,16 +103,16 @@ class NavBar extends Component<{}, IState> {
     if (this.state.isProcessing || this.state.isRunning)
       return;
 
-    if (!await this.checkCaptcha()) {
-      return Toast.show({
-        intent: Intent.DANGER,
-        icon: 'error',
-        message: 'You are solving that damn captcha for over an hour now... Hit the button again to retry solving the captcha.'
-      });
-    }
+    // if (!await this.checkCaptcha()) {
+    //   return Toast.show({
+    //     intent: Intent.DANGER,
+    //     icon: 'error',
+    //     message: 'You are solving that damn captcha for over an hour now... Hit the button again to retry solving the captcha.'
+    //   });
+    // }
     
     socketClient.socket.emit('runScript', this.state.captchaToken);
-    this.invalidateCaptcha();
+    // this.invalidateCaptcha();
   }
 
   private stopScript(): void {

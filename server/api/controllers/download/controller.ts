@@ -14,8 +14,8 @@ export class Controller {
     // @ts-ignore
     res.zip({
       files: [
-        { path: path.join(fiddle.getFiddleRootPath(), 'pawn.json'), name: 'pawn.json' },
-        { path: path.join(fiddle.getFiddleRootPath(), 'script.pwn'), name: 'script.pwn' },
+        { path: path.join(fiddle.getFiddleRootPath(), 'script.json'), name: 'script.json' },
+        { path: path.join(fiddle.getFiddleRootPath(), 'script.js'), name: 'script.js' },
       ],
       filename: `${req.params.id}.zip`,
     });

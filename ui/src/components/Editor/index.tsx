@@ -29,7 +29,7 @@ class Editor extends Component<IProps, IState> {
     locked: false,
     initialContent: null
   }
-  
+
   constructor(props: IProps) {
     super(props);
 
@@ -90,8 +90,8 @@ class Editor extends Component<IProps, IState> {
         width={this.props.width}
         height={this.props.height}
         value={this.state.initialContent}
-        language={'c'}
-        defaultValue={'#include <a_samp>\n\nmain()\n{\n    \n}\n'}
+        language="typescript"
+        defaultValue={'function main() {\n  \n}\n'}
         options={{
           theme: 'vs-dark'
         }}

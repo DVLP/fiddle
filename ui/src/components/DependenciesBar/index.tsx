@@ -150,8 +150,8 @@ class DependenciesBar extends Component<{}, IState> {
   }
 
   componentDidUpdate(prevProps: {}, prevState: IState) {
-    if (_.isEqual(prevState, this.state) && !this.state.locked)
-      this.setState({ isFiddleDirty: false });
+    // if (_.isEqual(prevState, this.state) && !this.state.locked)
+    //   this.setState({ isFiddleDirty: false });
 
     if (this.state.dependencies !== prevState.dependencies)
       this.syncDependencies();

@@ -13,6 +13,7 @@ import recaptcha from '../recaptcha';
 import l from '../logger';
 
 const aaaRegex = /^(?=(.*[A-Z]){3,})(?=(.*[a-z]){3,})[^\W|_|\d]+$/;
+const isProd = process.env.NODE_ENV === 'production'
 
 export default class SocketServer {
   bannedRepoUsers: string[] = [
@@ -153,22 +154,27 @@ export default class SocketServer {
     socket.isRunning = false;
     StdMessages.sendScriptExecutionState(socket);
 
-    try {
-      await recaptcha.validate(captchaToken);
-    } catch (ex) {
-      socket.isProcessing = false;
-      socket.isRunning = false;
-      StdMessages.sendScriptExecutionState(socket);
-      return StdMessages.sendErrorMessage(socket, 'Invalid request. (Captcha challenge failed)');
+    if (isProd) {
+      try {
+        await recaptcha.validate(captchaToken);
+      } catch (ex) {
+        socket.isProcessing = false;
+        socket.isRunning = false;
+        StdMessages.sendScriptExecutionState(socket);
+        return StdMessages.sendErrorMessage(socket, 'Invalid request. (Captcha challenge failed)');
+      }
     }
 
     socket.emit('clearConsole');
+    socket.emit('appendConsole', 'Script runner start');
 
     if (!socket.fiddleInstance)
       socket.fiddleInstance = new Fiddle();
     
+    socket.emit('appendConsole', 'Setting content');
     await socket.fiddleInstance.setData(socket.fiddleID, socket.title, socket.dependencies, socket.content);
-    
+
+    socket.emit('appendConsole', 'Saving');
     if (!socket.fiddleInstance || !await socket.fiddleInstance.save()) {
       socket.isProcessing = false;
       socket.isRunning = false;
@@ -176,11 +182,13 @@ export default class SocketServer {
       return StdMessages.sendErrorMessage(socket, 'An error occurred while trying to save your script.');
     }
 
-    if (!socket.fiddleInstance || !await socket.fiddleInstance.ensure()) {
-      socket.isProcessing = false;
-      socket.isRunning = false;
-      StdMessages.sendScriptExecutionState(socket);
-      return StdMessages.sendErrorMessage(socket, 'Could not ensure package dependencies. Make sure they are still up to date and available.');
+    if (isProd) {
+      if (!socket.fiddleInstance || !await socket.fiddleInstance.ensure()) {
+        socket.isProcessing = false;
+        socket.isRunning = false;
+        StdMessages.sendScriptExecutionState(socket);
+        return StdMessages.sendErrorMessage(socket, 'Could not ensure package dependencies. Make sure they are still up to date and available.');
+      }
     }
 
     if (!socket.fiddleInstance) {
@@ -190,6 +198,7 @@ export default class SocketServer {
       return StdMessages.sendErrorMessage(socket, 'Could not build your fiddle. (Are you trying to fork it while running?)');
     }
     
+    socket.emit('appendConsole', 'Building script...');
     const build: IBuildResponse = await socket.fiddleInstance.build();
     if (!build.success) {
       socket.isProcessing = false;
@@ -199,6 +208,7 @@ export default class SocketServer {
       return StdMessages.sendErrorMessage(socket, 'Your script has errors. Check the console output.');
     }
 
+    socket.emit('appendConsole', 'Checking for natives...');
     const amxNatives: string[] = await socket.fiddleInstance.interpreteNatives();
     const usedBannedNatives: string[] = _.intersectionWith(this.bannedNatives, amxNatives);
     if (!socket.fiddleInstance || usedBannedNatives.length) {
@@ -208,6 +218,7 @@ export default class SocketServer {
       return StdMessages.sendErrorMessage(socket, `You are using the following disabled native function(s): ${usedBannedNatives.join(', ')}`);
     }
 
+    socket.emit('appendConsole', 'Run script...');
     if (!socket.fiddleInstance || !await socket.fiddleInstance.run()) {
       socket.isProcessing = false;
       socket.isRunning = false;
@@ -215,6 +226,7 @@ export default class SocketServer {
       return StdMessages.sendErrorMessage(socket, 'An error occurred while trying to execute the script.');
     }
 
+    socket.emit('appendConsole', 'Done');
     socket.isProcessing = false;
     socket.isRunning = true;
     StdMessages.sendScriptExecutionState(socket);
@@ -232,20 +244,22 @@ export default class SocketServer {
   }
 
   async onShare(socket: IExtendedSocket, captchaToken: string): Promise<any> {
-    try {
-      await recaptcha.validate(captchaToken);
-    } catch (ex) {
-      return StdMessages.sendErrorMessage(socket, 'Invalid request. (Captcha challenge failed)');
+    if (isProd) {
+      try {
+        await recaptcha.validate(captchaToken);
+      } catch (ex) {
+        return StdMessages.sendErrorMessage(socket, 'Invalid request. (Captcha challenge failed)');
+      }
     }
 
     if (!socket.fiddleInstance)
       socket.fiddleInstance = new Fiddle();
 
     if (!socket.title || socket.title.trim() === '') // empty title
-      socket.title = `${socket.fiddleID}.pwn`;
-    
+      socket.title = `${socket.fiddleID}.js`;
+
     await socket.fiddleInstance.setData(socket.fiddleID, socket.title, socket.dependencies, socket.content);
-    
+
     if (!await socket.fiddleInstance.save(true))
       return StdMessages.sendErrorMessage(socket, 'An error happened while publishing you fiddle.');
     
